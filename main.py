@@ -1,0 +1,129 @@
+import discord
+import os
+import spotipy
+
+from discord.ext import commands
+from discord import Member
+from discord import Spotify
+from spotipy.oauth2 import SpotifyClientCredentials
+
+intents = discord.Intents.all()
+intents.message_content = True
+bot = commands.Bot(intents=intents, command_prefix='$', case_insensitive=True)
+sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+    client_id=os.environ.get("SPOTIFY_CLIENT_ID"),
+    client_secret=os.environ.get("SPOTIFY_CLIENT_SECRET"))
+)
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user}')
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='liaozhu.herokuapp.com/'))
+    # await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Spotify"))
+    
+@bot.command(name="hello", aliases=["hi", "hey"])
+async def hello(ctx):
+  await ctx.channel.send("hello")
+  
+@bot.command(name="current", aliases=["playing", "song"])
+async def current(ctx, user: discord.Member = None):
+    if user == None:
+        user = ctx.author
+        pass
+      
+    if user.activities:
+        for activity in user.activities:
+            if isinstance(activity, Spotify):
+                embed = discord.Embed(
+                    title = f"{user.name}'s Current Song",
+                    description = "Listening to {}".format(activity.title),
+                    color = 0x90EE90
+                )
+                embed.set_thumbnail(url=activity.album_cover_url)
+                embed.add_field(name="Artist", value=activity.artist)
+                embed.add_field(name="Album", value=activity.album)
+                await ctx.channel.send(embed=embed)
+            else:
+                await ctx.channel.send("Not playing anything, please make sure Spotify is connected")
+
+    else:
+        await ctx.channel.send("Not playing anything, please make sure Spotify is connected")
+    
+
+@bot.command(name="artist")
+async def artist(ctx, artist=None):
+    if artist == None:
+        await ctx.channel.send("Please do: $artist + 'artist's name' in order to search for an artist")
+        return
+    results = sp.search(q=artist, limit=5)
+    artistResults = sp.search(q=artist, type='artist')
+    items = artistResults['artists']['items']
+    if len(items) > 0:
+        artistImage = items[0]
+        embed = discord.Embed(
+        title = f"{artist}'s Top Tracks",
+        color = 0x90EE90)
+        embed.set_thumbnail(url=artistImage['images'][0]['url'])
+        embed.add_field(name="Spotify: ", value=artistResults['artists']['items'][0]['external_urls']['spotify'], inline=False)
+        for idx, track in enumerate(results['tracks']['items']):
+            embed.add_field(name=f"{idx + 1}", value=track['name'], inline=False)
+        await ctx.channel.send(embed=embed)
+    else:
+        await ctx.channel.send("No artist found")
+
+@bot.command(name="spotify", aliases=["profile", "account", "user", "me"])
+async def spotify(ctx, *, username=None):
+    if username == None:
+        username = ctx.author.name
+        await ctx.channel.send("Searching for account with username: " + f"{username}")
+        pass
+    
+    
+    try:
+        user = sp.user(f"{username}")
+        
+        embed = discord.Embed(
+            title = user["display_name"],
+            color = 0x90EE90)
+        try:
+            embed.set_thumbnail(url=user['images'][0]['url'])
+        except:
+            print("no image found")
+            
+        embed.add_field(name="View Profile: ", value=user["external_urls"]["spotify"], inline=False)
+        embed.add_field(name="Followers: ", value=f"{user['followers']['total']}", inline=False)
+        playlists = sp.user_playlists(f"{username}")
+        while playlists:
+            embed.add_field(name="User Playlists", value="Showing public playlists by " + f"{username}", inline=False)
+            for i, playlist in enumerate(playlists['items']):
+                embed.add_field(name="\u200b", value=f"{i + 1 + playlists['offset']}: {playlist['name']} {playlist['external_urls']['spotify']}", inline=False)
+            if playlists['next']:
+                playlists = sp.next(playlists)
+            else:
+                playlists = None
+
+        await ctx.channel.send(embed=embed)
+        
+    except:
+        await ctx.channel.send("No User Found With Username: " + f"{username}")
+    
+@bot.command()
+async def search(ctx, *, title=None):
+    if title == None:
+        await ctx.channel.send("Please do: $search + 'title of song' in order to search for a track")
+        return
+    
+    song = sp.search(f"{title}", limit=1)
+    try:
+        embed = discord.Embed(
+            color = 0x90EE90
+        )
+        embed.add_field(name="Title", value=song['tracks']['items'][0]['name'], inline=False)
+        embed.add_field(name="Open", value=song['tracks']['items'][0]['external_urls']['spotify'], inline=False)
+        embed.add_field(name="Album", value=song['tracks']['items'][0]['album']['name'], inline=False)
+        embed.set_thumbnail(url=song['tracks']['items'][0]['album']['images'][0]['url'])
+        await ctx.channel.send(embed=embed)
+    except:
+        await ctx.channel.send("Could not find song: " + f"{title}")
+ 
+bot.run(os.environ.get('TOKEN'))
