@@ -64,6 +64,7 @@ async def artist(ctx, artist=None):
         title = f"{artist}'s Top Tracks",
         color = 0x90EE90)
         embed.set_thumbnail(url=artistImage['images'][0]['url'])
+        embed.add_field(name="Followers: ", value=artistResults['artists']['items'][0]['followers']['total'], inline=False)
         embed.add_field(name="Spotify: ", value=artistResults['artists']['items'][0]['external_urls']['spotify'], inline=False)
         for idx, track in enumerate(results['tracks']['items']):
             embed.add_field(name=f"{idx + 1}", value=track['name'], inline=False)
