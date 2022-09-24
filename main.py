@@ -141,15 +141,15 @@ async def search(ctx, typeSearch=None, *, title=None):
         albums = sp.search(q=f"{title}", type="album", limit=6)
         try:
             embed = discord.Embed(
+                title = artist['artists']['items'][0]['name'],
                 color = 0x90EE90
             )
             embed.set_thumbnail(url=artist['artists']['items'][0]['images'][0]['url'])
             embed.add_field(name="Followers: ", value=artist['artists']['items'][0]['followers']['total'], inline=False)
             embed.add_field(name="Artist Profile: ", value=artist['artists']['items'][0]['external_urls']['spotify'], inline=False)
-            embed.add_field(name="Top Playlists", value="\u200b", inline=False)
+            embed.add_field(name="Top Albums", value="\u200b", inline=False)
             for idx, album in enumerate(albums['albums']['items'][1:]):
-                embed.add_field(name=f"{idx + 1}", value=album['name'], inline=False)
-                embed.add_field(name="\u200b", value=album['external_urls']['spotify'])
+                embed.add_field(name=f"{idx + 1}", value=f"{album['name']} {album['external_urls']['spotify']}", inline=False)
             await ctx.channel.send(embed=embed)
         except:
             await ctx.channel.send("No artist found with name: " + f"{artist}")
