@@ -30,7 +30,10 @@ async def help(ctx):
         color = 0x90EE90
     )     
     embed.add_field(name="$current/playing/song", value="returns song currently playing", inline=False)
-    embed.add_field(name="$artist artistName", value="returns artist searched", inline=False)
+    embed.add_field(name="$search + song + songTitle", value="returns song searched", inline=False)
+    embed.add_field(name="$search + album + albumTitle", value="returns album searched", inline=False)
+    embed.add_field(name="$search + artist + artistName", value="returns artist searched", inline=False)
+
     embed.add_field(name="$search song/album songName/albumName", value="returns song/album searched", inline=False)
     await ctx.channel.send(embed=embed)
 
